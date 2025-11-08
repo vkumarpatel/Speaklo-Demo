@@ -3,235 +3,366 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Speaklo — Robust Demo (Mic + Voice)</title>
-
-  <!-- lottie -->
+  <title>Speaklo — Demo (Polished)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.9.6/lottie.min.js"></script>
-
   <style>
     :root{
-      --bg:#f5fbff;
-      --card:#fff;
-      --navy:#0a1f44;
+      --bg:#f3fbff;
+      --card:#ffffff;
+      --primary:#0a1f44;
       --accent:#00BFFF;
+      --muted:#6d7c93;
+      --success:#36b37e;
+      --danger:#ff6b6b;
+      --glass: rgba(10,31,68,0.04);
     }
-    html,body{height:100%;margin:0}
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-    .card{width:420px;max-width:95vw;background:var(--card);border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(10,31,68,0.08);text-align:center}
-    #anim{width:240px;height:240px;margin:0 auto;position:relative}
-    .mouth{position:absolute;left:50%;transform:translateX(-50%);bottom:86px;width:68px;height:16px;background:var(--navy);border-radius:12px;transition:height .05s ease, transform .05s ease}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
-    button{padding:10px 14px;border-radius:10px;border:none;background:var(--navy);color:#fff;font-weight:700;cursor:pointer}
-    .small{background:transparent;color:var(--navy);border:2px solid var(--navy)}
-    .select, .slider {margin-top:10px;width:100%;display:flex;align-items:center;gap:8px;justify-content:center}
-    select{padding:8px;border-radius:8px;border:1px solid #dfe6f0;width:70%}
-    label{font-size:13px;color:var(--navy);font-weight:600}
-    input[type="range"]{width:60%}
-    .status{margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
-    .hint{font-size:12px;color:#556;margin-top:8px}
-    footer{font-size:12px;color:#889;padding-top:8px}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--primary)}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:36px}
+    .card{width:980px;max-width:96vw;background:var(--card);border-radius:16px;padding:24px;box-shadow:0 20px 50px rgba(10,31,68,0.08);display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
+    /* left: avatar & controls */
+    .left{display:flex;flex-direction:column;align-items:center;gap:14px}
+    #avatarWrap{width:320px;height:320px;display:flex;align-items:center;justify-content:center;position:relative;background:linear-gradient(180deg,#fff,#f7fbff);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
+    #anim{width:260px;height:260px}
+    .mouth{position:absolute;left:50%;transform:translateX(-50%);bottom:42px;width:72px;height:16px;background:var(--primary);border-radius:12px;transition:height .06s ease,transform .06s ease}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+    button.primary{background:var(--primary);color:white;border-radius:12px;padding:12px 16px;border:0;font-weight:700;cursor:pointer}
+    button.ghost{background:transparent;color:var(--primary);border:2px solid var(--primary);border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+    /* right: transcript & feedback */
+    .right{display:flex;flex-direction:column;gap:12px}
+    .topRow{display:flex;justify-content:space-between;align-items:center}
+    .title{font-size:20px;font-weight:700}
+    .sub{color:var(--muted);font-size:13px}
+    .panel{background:var(--glass);padding:12px;border-radius:10px}
+    .transcript{min-height:140px;max-height:260px;overflow:auto;padding:12px;background:#fff;border-radius:10px;border:1px solid rgba(10,31,68,0.04)}
+    .metrics{display:flex;gap:12px;margin-top:6px}
+    .metric{background:linear-gradient(180deg,#fff,#f6fbff);padding:10px;border-radius:10px;min-width:140px;text-align:center;box-shadow:0 6px 18px rgba(10,31,68,0.04)}
+    .metric .num{font-size:20px;font-weight:800}
+    .scoreBar{height:10px;background:rgba(10,31,68,0.06);border-radius:10px;overflow:hidden;margin-top:8px}
+    .scoreBar .fill{height:100%;background:linear-gradient(90deg,var(--accent),#6ad0ff)}
+    .tips{font-size:13px;color:var(--muted)}
+    /* footer controls */
+    .ttsControls{display:flex;gap:12px;align-items:center}
+    select, input[type="range"]{padding:8px;border-radius:8px;border:1px solid rgba(10,31,68,0.06)}
+    label.small{font-size:13px;color:var(--muted);min-width:48px}
+    /* responsive */
+    @media (max-width:880px){
+      .card{grid-template-columns:1fr;align-items:center}
+      #avatarWrap{width:260px;height:260px}
+    }
   </style>
 </head>
 <body>
-  <div class="card" role="application" aria-label="Speaklo Demo">
-    <div id="anim" aria-hidden="true"></div>
-    <div class="mouth" id="mouth" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="card" role="main" aria-label="Speaklo demo card">
+      <!-- LEFT: Avatar and Controls -->
+      <div class="left">
+        <div id="avatarWrap" aria-hidden="true">
+          <div id="anim"></div>
+          <div class="mouth" id="mouth" aria-hidden="true"></div>
+        </div>
 
-    <div class="controls">
-      <button id="welcomeBtn">Play Welcome</button>
-      <button id="startBtn" class="small">Start Mic</button>
-      <button id="stopBtn" class="small">Stop Mic</button>
-      <button id="playSample" class="small">Play Sample</button>
+        <div class="controls">
+          <button id="recordBtn" class="primary">Start Practice</button>
+          <button id="stopBtn" class="ghost">Stop</button>
+          <button id="playSample" class="ghost">Play Model</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:6px;align-items:center">
+          <button id="repeatSlow" class="ghost">Repeat Slow</button>
+          <button id="shareClip" class="ghost">Share Clip</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Transcript, metrics, feedback -->
+      <div class="right">
+        <div class="topRow">
+          <div>
+            <div class="title">Speaklo — Practice Session</div>
+            <div class="sub">Practice speaking. Get instant feedback and one actionable tip.</div>
+          </div>
+          <div style="text-align:right">
+            <div class="sub">Status</div>
+            <div id="status" style="font-weight:700">idle</div>
+          </div>
+        </div>
+
+        <div class="panel transcript" id="transcript" aria-live="polite">
+          <div style="color:var(--muted)">Your recording and transcript will appear here. Press Start Practice to begin.</div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="metric">
+            <div style="color:var(--muted);font-size:13px">Fluency</div>
+            <div class="num" id="wpm">0 WPM</div>
+            <div class="scoreBar" aria-hidden="true"><div id="wpmFill" class="fill" style="width:0%"></div></div>
+          </div>
+
+          <div class="metric">
+            <div style="color:var(--muted);font-size:13px">Filler Words</div>
+            <div class="num" id="fillers">0</div>
+            <div class="tips" id="fillerTip">Try to avoid 'um', 'uh', 'you know'.</div>
+          </div>
+
+          <div class="metric">
+            <div style="color:var(--muted);font-size:13px">Confidence</div>
+            <div class="num" id="conf">—</div>
+            <div class="tips" id="confTip">Listen to the model and shadow it.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="min-width:220px">
+            <label class="small">Voice</label>
+            <select id="voiceSel"></select>
+          </div>
+
+          <div>
+            <label class="small">Rate</label>
+            <input id="rateRange" type="range" min="0.7" max="1.2" step="0.05" value="0.95">
+          </div>
+
+          <div>
+            <label class="small">Pitch</label>
+            <input id="pitchRange" type="range" min="0.7" max="1.4" step="0.05" value="1.0">
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="tips" id="actionTip">Tip: Record for at least 20 seconds to get an accurate fluency score.</div>
+        </div>
+      </div>
     </div>
-
-    <div class="select">
-      <label for="voiceSel">Voice</label>
-      <select id="voiceSel" aria-label="Select voice"></select>
-    </div>
-
-    <div class="select">
-      <label for="rateRange">Rate</label>
-      <input id="rateRange" class="slider" type="range" min="0.6" max="1.2" step="0.05" value="0.95">
-      <span id="rateVal">0.95</span>
-    </div>
-
-    <div class="select">
-      <label for="pitchRange">Pitch</label>
-      <input id="pitchRange" class="slider" type="range" min="0.6" max="1.4" step="0.05" value="1.00">
-      <span id="pitchVal">1.00</span>
-    </div>
-
-    <div class="status" id="status">Status: idle</div>
-    <div class="hint">Tip: use Chrome or Edge on desktop (best voice and mic support). The page must be served over HTTPS for mic to work (localhost works without HTTPS).</div>
-    <footer>Speaklo Demo</footer>
   </div>
 
 <script>
-/* =========================
-   Lottie - public demo JSON
-   ========================= */
-const LOTTIE_JSON = 'https://assets8.lottiefiles.com/packages/lf20_sxsz4q6m.json'; // swap with your own JSON if you want
-const anim = lottie.loadAnimation({
-  container: document.getElementById('anim'),
-  renderer: 'svg',
-  loop: true,
-  autoplay: true,
-  path: LOTTIE_JSON
-});
+/* -------------------------
+   Lottie avatar (public demo)
+   ------------------------- */
+const LOTTIE_JSON = 'https://assets8.lottiefiles.com/packages/lf20_sxsz4q6m.json';
+const anim = lottie.loadAnimation({ container: document.getElementById('anim'), renderer: 'svg', loop: true, autoplay: true, path: LOTTIE_JSON });
 
-/* =========================
-   TTS: populate voices and helpers
-   ========================= */
+/* -------------
+   UI elements
+   ------------- */
+const recordBtn = document.getElementById('recordBtn');
+const stopBtn = document.getElementById('stopBtn');
+const playSample = document.getElementById('playSample');
+const repeatSlow = document.getElementById('repeatSlow');
+const shareClip = document.getElementById('shareClip');
+const statusEl = document.getElementById('status');
+const mouth = document.getElementById('mouth');
+const transcriptEl = document.getElementById('transcript');
+const wpmEl = document.getElementById('wpm');
+const wpmFill = document.getElementById('wpmFill');
+const fillersEl = document.getElementById('fillers');
+const confEl = document.getElementById('conf');
+const actionTip = document.getElementById('actionTip');
+
+let audioCtx = null, analyser = null, sourceNode = null, micStream = null, rafId = null;
+let recorder = null, chunks = [], recordedBlob = null;
+
+/* -------------------------
+   TTS voices & helpers
+   ------------------------- */
 const voiceSel = document.getElementById('voiceSel');
 const rateRange = document.getElementById('rateRange');
 const pitchRange = document.getElementById('pitchRange');
-const rateVal = document.getElementById('rateVal');
-const pitchVal = document.getElementById('pitchVal');
-rateRange.oninput = () => rateVal.textContent = rateRange.value;
-pitchRange.oninput = () => pitchVal.textContent = pitchRange.value;
 
-function getVoicesSorted(){
-  const voices = speechSynthesis.getVoices() || [];
-  voices.sort((a,b)=>{
-    const score = v => (v.name && v.name.toLowerCase().includes('google')?5:0) + (v.lang && v.lang.startsWith('en')?3:0);
-    return (score(b) - score(a)) || a.name.localeCompare(b.name);
-  });
-  return voices;
+// populate voices (browser)
+function sortedVoices(){
+  const vs = speechSynthesis.getVoices() || [];
+  vs.sort((a,b)=> (a.lang===b.lang? a.name.localeCompare(b.name) : a.lang.localeCompare(b.lang)));
+  return vs;
 }
-
-function populateVoiceList(){
-  const voices = getVoicesSorted();
+function populateVoices(){
+  const vs = sortedVoices();
   voiceSel.innerHTML = '';
-  voices.forEach((v, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = `${v.name} — ${v.lang}`;
-    voiceSel.appendChild(opt);
-  });
-  if(voices.length===0){
-    const opt = document.createElement('option'); opt.textContent = 'No voices found'; voiceSel.appendChild(opt);
+  if(vs.length===0){
+    const opt = document.createElement('option'); opt.textContent='(no voices found)'; voiceSel.appendChild(opt);
+    return;
   }
+  vs.forEach((v,i)=>{
+    const o = document.createElement('option'); o.value=i; o.textContent = v.name + ' — ' + v.lang; voiceSel.appendChild(o);
+  });
 }
-populateVoiceList();
-window.speechSynthesis.onvoiceschanged = populateVoiceList;
+populateVoices();
+window.speechSynthesis.onvoiceschanged = populateVoices;
 
-function speak(text, {rate=rateRange.value, pitch=pitchRange.value, voiceIndex=null} = {}){
+function speak(text, opts={}){
+  // First: optionally call server TTS (ElevenLabs) here (commented out).
+  // If you later add server /api/tts, call it and play returned audio blob.
   if(!('speechSynthesis' in window)){
     alert('TTS not supported in this browser.');
     return;
   }
   const u = new SpeechSynthesisUtterance(text);
-  u.rate = parseFloat(rate);
-  u.pitch = parseFloat(pitch);
-  const voices = getVoicesSorted();
-  if(voiceSel.selectedIndex >= 0 && voices[voiceSel.selectedIndex]) u.voice = voices[voiceSel.selectedIndex];
+  const vs = sortedVoices();
+  if(vs.length && voiceSel.selectedIndex>=0) u.voice = vs[voiceSel.selectedIndex] || vs[0];
+  u.rate = opts.rate || parseFloat(rateRange.value || 0.95);
+  u.pitch = opts.pitch || parseFloat(pitchRange.value || 1.0);
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
 
-document.getElementById('welcomeBtn').onclick = () => speak("Hi — I'm Tala, your Speaklo coach. Ready for three minutes of practice?");
-document.getElementById('playSample').onclick = () => speak("Here is a slow sample sentence. Repeat after me. I love exploring new places.");
-
-/* =========================
-   Robust mic start/stop & mouth animation
-   ========================= */
-let audioCtx = null;
-let analyser = null;
-let sourceNode = null;
-let micStream = null;
-let rafId = null;
-const mouth = document.getElementById('mouth');
-const statusEl = document.getElementById('status');
-
-async function ensureAudioContext(){ 
-  if(!audioCtx || audioCtx.state === 'closed'){
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    console.log('AudioContext created', audioCtx);
-  } else if(audioCtx.state === 'suspended'){
-    try{ await audioCtx.resume(); console.log('AudioContext resumed'); } catch(e){ console.warn(e); }
-  }
+/* -------------------------
+   Mic recording & analyser
+   ------------------------- */
+async function ensureAudioCtx(){
+  if(!audioCtx || audioCtx.state === 'closed') audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  else if(audioCtx.state === 'suspended') await audioCtx.resume();
+  return audioCtx;
 }
 
-async function startMic(){
+async function startRecording(){
   try {
-    if (micStream) {
-      console.log('Mic already started');
-      statusEl.textContent = 'Status: mic already running';
-      return;
-    }
-
+    if (micStream) { console.log('already'); return; }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     micStream = stream;
-    await ensureAudioContext();
+    await ensureAudioCtx();
 
+    // MediaRecorder for saving blob
+    recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    chunks = [];
+    recorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+    recorder.onstop = ()=> {
+      recordedBlob = new Blob(chunks, { type: 'audio/webm' });
+      // show playback control inside transcript:
+      const url = URL.createObjectURL(recordedBlob);
+      const audio = document.createElement('audio'); audio.controls = true; audio.src = url;
+      transcriptEl.innerHTML = '';
+      transcriptEl.appendChild(audio);
+      // Run simple analysis on the raw audio (we'll transcribe with server later)
+      analyzeRecordedTextUrl(url);
+    };
+    recorder.start();
+
+    // audio analyser for mouth animation
     sourceNode = audioCtx.createMediaStreamSource(stream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
+    analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
     sourceNode.connect(analyser);
-
     const data = new Uint8Array(analyser.frequencyBinCount);
-
-    function tick() {
+    function tick(){
       analyser.getByteFrequencyData(data);
       let sum = 0;
-      for (let i=0;i<data.length;i++){ sum += (data[i])*(data[i]); }
-      const rms = Math.sqrt(sum / data.length);
-      const newHeight = Math.max(8, Math.min(64, 14 + (rms/3)));
-      mouth.style.height = newHeight + 'px';
-      mouth.style.transform = `translateX(-50%) scaleX(${1 + Math.min(0.9, rms/200)})`;
+      for(let i=0;i<data.length;i++) sum += data[i]*data[i];
+      const rms = Math.sqrt(sum/data.length);
+      const h = Math.max(10, Math.min(84, 14 + (rms/2)));
+      mouth.style.height = h + 'px';
+      mouth.style.transform = `translateX(-50%) scaleX(${1 + Math.min(1.0, rms/180)})`;
       rafId = requestAnimationFrame(tick);
     }
     tick();
-    statusEl.textContent = 'Status: listening';
-    console.log('Mic started');
-  } catch (err) {
-    console.error('Error starting mic:', err);
-    micStream = null;
-    statusEl.textContent = 'Status: mic error';
-    alert('Cannot access microphone. Please allow microphone permission and ensure the page is served over HTTPS.');
+
+    statusEl.textContent = 'recording';
+    recordBtn.textContent = 'Recording…';
+    recordBtn.disabled = true;
+    stopBtn.disabled = false;
+    actionTip.textContent = 'Recording — speak naturally. Press Stop when done.';
+  } catch (e) {
+    console.error(e);
+    alert('Microphone access denied or error. Check site permission and HTTPS.');
   }
 }
 
-function stopMic(){
+function stopRecording(){
   try {
-    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-
-    if (analyser) {
-      try { analyser.disconnect(); } catch(e){}
-      analyser = null;
-    }
-    if (sourceNode) {
-      try { sourceNode.disconnect(); } catch(e){}
-      sourceNode = null;
-    }
-
-    if (micStream) {
-      micStream.getTracks().forEach(t => {
-        try { t.stop(); } catch(e){}
-      });
-      micStream = null;
-    }
-
-    if (audioCtx && audioCtx.state !== 'closed') {
-      audioCtx.suspend().then(() => console.log('audioCtx suspended')).catch(()=>{});
-    }
-
+    if(recorder && recorder.state === 'recording') recorder.stop();
+    if(rafId) cancelAnimationFrame(rafId);
+    if(analyser) { try{ analyser.disconnect(); } catch(e){} analyser=null; }
+    if(sourceNode) { try{ sourceNode.disconnect(); } catch(e){} sourceNode=null; }
+    if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
+    if(audioCtx && audioCtx.state !== 'closed') audioCtx.suspend();
+    statusEl.textContent = 'idle';
+    recordBtn.textContent = 'Start Practice';
+    recordBtn.disabled = false;
+    stopBtn.disabled = true;
     mouth.style.height = '16px';
     mouth.style.transform = 'translateX(-50%) scaleX(1)';
-    statusEl.textContent = 'Status: idle';
-    console.log('Mic stopped & cleaned up');
-  } catch (e) {
-    console.warn('stopMic cleanup error', e);
+    actionTip.textContent = 'Tip: Press Play Model to hear an example to shadow.';
+  } catch(e){
+    console.warn('stop error', e);
   }
 }
 
-document.getElementById('startBtn').onclick = startMic;
-document.getElementById('stopBtn').onclick = stopMic;
+/* -------------------------
+   Simple "analysis" without STT (cheap, immediate)
+   - We estimate words by silence-based segmentation using Audio element durations (approx)
+   - We detect filler words by running post-transcription; since we don't have STT here,
+     we'll implement a mock quick heuristic by asking user to paste transcript later.
+   ------------------------- */
 
+async function analyzeRecordedTextUrl(url){
+  try {
+    // This demo uses a naive approach: we cannot transcribe reliably in browser without STT.
+    // So for demo feel, we'll play the recorded audio and estimate WPM using duration.
+    const a = new Audio(url);
+    a.onloadedmetadata = () => {
+      const secs = a.duration || 0.0;
+      // heuristic: assume ~14 words per 10 seconds as average conversational speech (or let user edit)
+      // Better: when you add server Whisper, replace this with actual transcription and accurate WPM.
+      const approxWords = Math.max(5, Math.round(secs * 2.4 * 3)); // rough
+      const wpm = Math.round((approxWords / secs) * 60) || 0;
+      wpmEl.textContent = `${wpm} WPM`;
+      const pct = Math.min(100, Math.round((wpm / 160) * 100));
+      wpmFill.style.width = pct + '%';
+      // simple confidence metric: WPM in 100-160 is good; lower -> practice pacing
+      let conf = 'Medium';
+      if(wpm >= 110) { conf = 'High'; confEl.textContent = 'High'; }
+      else if(wpm >= 70) { conf = 'Medium'; confEl.textContent = 'Medium'; }
+      else { conf = 'Low'; confEl.textContent = 'Low'; }
+      // filler words cannot be detected w/o STT. show placeholder:
+      fillersEl.textContent = '—';
+      transcriptEl.appendChild(document.createElement('div'));
+      const tip = document.createElement('div'); tip.style.marginTop='8px'; tip.style.color='var(--muted)';
+      tip.textContent = `Recorded duration: ${secs.toFixed(1)}s — approx ${approxWords} words. Tip: Try to speak steadily and avoid long pauses.`;
+      transcriptEl.appendChild(tip);
+      // Show "model" sample to shadow
+      playModelSample();
+    };
+  } catch(e){
+    console.error('analysis failed', e);
+  }
+}
+
+/* -------------------------
+   Play a model sentence (sample) with TTS
+   ------------------------- */
+function playModelSample(){
+  const sample = 'Hello, my name is Luma. I am practicing English and improving every day.';
+  speak(sample, { rate: 0.95, pitch: 1.0 });
+}
+
+/* -------------------------
+   Buttons
+   ------------------------- */
+recordBtn.onclick = startRecording;
+stopBtn.onclick = stopRecording;
+playSample.onclick = playModelSample;
+repeatSlow.onclick = ()=> speak('Hello, my name is Luma. I am practicing English and improving every day.', { rate:0.8, pitch:0.95 });
+shareClip.onclick = ()=> {
+  if(!recordedBlob){ alert('Record a clip first'); return; }
+  // create downloadable link
+  const url = URL.createObjectURL(recordedBlob);
+  const a = document.createElement('a'); a.href = url; a.download = 'speaklo_clip.webm';
+  a.click();
+};
+
+/* -------------------------
+   Notes where to plug real STT/TTS
+   -------------------------
+   - To add real transcription: implement a server API /api/transcribe that accepts the recordedBlob (webm)
+     and sends it to Whisper/OpenAI or Deepgram. Then update analyzeRecordedTextUrl() to receive the returned text,
+     compute exact WPM, filler words, and provide word-level feedback.
+
+   - To add realistic TTS (ElevenLabs): create /api/tts that calls ElevenLabs with text and returns audio (or URL).
+     In speak(), prefer calling /api/tts first and play the returned audio buffer for higher-quality voice.
+*/
+
+/* -------------------------
+   Safety: ensure voices loaded
+   ------------------------- */
 window.speechSynthesis.getVoices();
-window.addEventListener('beforeunload', () => {
-  try { stopMic(); if (audioCtx && audioCtx.state !== 'closed') audioCtx.close(); } catch(e){}
-}); 
 </script>
 </body>
 </html>
