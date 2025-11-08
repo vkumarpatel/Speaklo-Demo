@@ -1,0 +1,237 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Speaklo — Robust Demo (Mic + Voice)</title>
+
+  <!-- lottie -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.9.6/lottie.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f5fbff;
+      --card:#fff;
+      --navy:#0a1f44;
+      --accent:#00BFFF;
+    }
+    html,body{height:100%;margin:0}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+    .card{width:420px;max-width:95vw;background:var(--card);border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(10,31,68,0.08);text-align:center}
+    #anim{width:240px;height:240px;margin:0 auto;position:relative}
+    .mouth{position:absolute;left:50%;transform:translateX(-50%);bottom:86px;width:68px;height:16px;background:var(--navy);border-radius:12px;transition:height .05s ease, transform .05s ease}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+    button{padding:10px 14px;border-radius:10px;border:none;background:var(--navy);color:#fff;font-weight:700;cursor:pointer}
+    .small{background:transparent;color:var(--navy);border:2px solid var(--navy)}
+    .select, .slider {margin-top:10px;width:100%;display:flex;align-items:center;gap:8px;justify-content:center}
+    select{padding:8px;border-radius:8px;border:1px solid #dfe6f0;width:70%}
+    label{font-size:13px;color:var(--navy);font-weight:600}
+    input[type="range"]{width:60%}
+    .status{margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
+    .hint{font-size:12px;color:#556;margin-top:8px}
+    footer{font-size:12px;color:#889;padding-top:8px}
+  </style>
+</head>
+<body>
+  <div class="card" role="application" aria-label="Speaklo Demo">
+    <div id="anim" aria-hidden="true"></div>
+    <div class="mouth" id="mouth" aria-hidden="true"></div>
+
+    <div class="controls">
+      <button id="welcomeBtn">Play Welcome</button>
+      <button id="startBtn" class="small">Start Mic</button>
+      <button id="stopBtn" class="small">Stop Mic</button>
+      <button id="playSample" class="small">Play Sample</button>
+    </div>
+
+    <div class="select">
+      <label for="voiceSel">Voice</label>
+      <select id="voiceSel" aria-label="Select voice"></select>
+    </div>
+
+    <div class="select">
+      <label for="rateRange">Rate</label>
+      <input id="rateRange" class="slider" type="range" min="0.6" max="1.2" step="0.05" value="0.95">
+      <span id="rateVal">0.95</span>
+    </div>
+
+    <div class="select">
+      <label for="pitchRange">Pitch</label>
+      <input id="pitchRange" class="slider" type="range" min="0.6" max="1.4" step="0.05" value="1.00">
+      <span id="pitchVal">1.00</span>
+    </div>
+
+    <div class="status" id="status">Status: idle</div>
+    <div class="hint">Tip: use Chrome or Edge on desktop (best voice and mic support). The page must be served over HTTPS for mic to work (localhost works without HTTPS).</div>
+    <footer>Speaklo Demo</footer>
+  </div>
+
+<script>
+/* =========================
+   Lottie - public demo JSON
+   ========================= */
+const LOTTIE_JSON = 'https://assets8.lottiefiles.com/packages/lf20_sxsz4q6m.json'; // swap with your own JSON if you want
+const anim = lottie.loadAnimation({
+  container: document.getElementById('anim'),
+  renderer: 'svg',
+  loop: true,
+  autoplay: true,
+  path: LOTTIE_JSON
+});
+
+/* =========================
+   TTS: populate voices and helpers
+   ========================= */
+const voiceSel = document.getElementById('voiceSel');
+const rateRange = document.getElementById('rateRange');
+const pitchRange = document.getElementById('pitchRange');
+const rateVal = document.getElementById('rateVal');
+const pitchVal = document.getElementById('pitchVal');
+rateRange.oninput = () => rateVal.textContent = rateRange.value;
+pitchRange.oninput = () => pitchVal.textContent = pitchRange.value;
+
+function getVoicesSorted(){
+  const voices = speechSynthesis.getVoices() || [];
+  voices.sort((a,b)=>{
+    const score = v => (v.name && v.name.toLowerCase().includes('google')?5:0) + (v.lang && v.lang.startsWith('en')?3:0);
+    return (score(b) - score(a)) || a.name.localeCompare(b.name);
+  });
+  return voices;
+}
+
+function populateVoiceList(){
+  const voices = getVoicesSorted();
+  voiceSel.innerHTML = '';
+  voices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${v.name} — ${v.lang}`;
+    voiceSel.appendChild(opt);
+  });
+  if(voices.length===0){
+    const opt = document.createElement('option'); opt.textContent = 'No voices found'; voiceSel.appendChild(opt);
+  }
+}
+populateVoiceList();
+window.speechSynthesis.onvoiceschanged = populateVoiceList;
+
+function speak(text, {rate=rateRange.value, pitch=pitchRange.value, voiceIndex=null} = {}){
+  if(!('speechSynthesis' in window)){
+    alert('TTS not supported in this browser.');
+    return;
+  }
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = parseFloat(rate);
+  u.pitch = parseFloat(pitch);
+  const voices = getVoicesSorted();
+  if(voiceSel.selectedIndex >= 0 && voices[voiceSel.selectedIndex]) u.voice = voices[voiceSel.selectedIndex];
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+document.getElementById('welcomeBtn').onclick = () => speak("Hi — I'm Tala, your Speaklo coach. Ready for three minutes of practice?");
+document.getElementById('playSample').onclick = () => speak("Here is a slow sample sentence. Repeat after me. I love exploring new places.");
+
+/* =========================
+   Robust mic start/stop & mouth animation
+   ========================= */
+let audioCtx = null;
+let analyser = null;
+let sourceNode = null;
+let micStream = null;
+let rafId = null;
+const mouth = document.getElementById('mouth');
+const statusEl = document.getElementById('status');
+
+async function ensureAudioContext(){ 
+  if(!audioCtx || audioCtx.state === 'closed'){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    console.log('AudioContext created', audioCtx);
+  } else if(audioCtx.state === 'suspended'){
+    try{ await audioCtx.resume(); console.log('AudioContext resumed'); } catch(e){ console.warn(e); }
+  }
+}
+
+async function startMic(){
+  try {
+    if (micStream) {
+      console.log('Mic already started');
+      statusEl.textContent = 'Status: mic already running';
+      return;
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStream = stream;
+    await ensureAudioContext();
+
+    sourceNode = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    sourceNode.connect(analyser);
+
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    function tick() {
+      analyser.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i=0;i<data.length;i++){ sum += (data[i])*(data[i]); }
+      const rms = Math.sqrt(sum / data.length);
+      const newHeight = Math.max(8, Math.min(64, 14 + (rms/3)));
+      mouth.style.height = newHeight + 'px';
+      mouth.style.transform = `translateX(-50%) scaleX(${1 + Math.min(0.9, rms/200)})`;
+      rafId = requestAnimationFrame(tick);
+    }
+    tick();
+    statusEl.textContent = 'Status: listening';
+    console.log('Mic started');
+  } catch (err) {
+    console.error('Error starting mic:', err);
+    micStream = null;
+    statusEl.textContent = 'Status: mic error';
+    alert('Cannot access microphone. Please allow microphone permission and ensure the page is served over HTTPS.');
+  }
+}
+
+function stopMic(){
+  try {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+    if (analyser) {
+      try { analyser.disconnect(); } catch(e){}
+      analyser = null;
+    }
+    if (sourceNode) {
+      try { sourceNode.disconnect(); } catch(e){}
+      sourceNode = null;
+    }
+
+    if (micStream) {
+      micStream.getTracks().forEach(t => {
+        try { t.stop(); } catch(e){}
+      });
+      micStream = null;
+    }
+
+    if (audioCtx && audioCtx.state !== 'closed') {
+      audioCtx.suspend().then(() => console.log('audioCtx suspended')).catch(()=>{});
+    }
+
+    mouth.style.height = '16px';
+    mouth.style.transform = 'translateX(-50%) scaleX(1)';
+    statusEl.textContent = 'Status: idle';
+    console.log('Mic stopped & cleaned up');
+  } catch (e) {
+    console.warn('stopMic cleanup error', e);
+  }
+}
+
+document.getElementById('startBtn').onclick = startMic;
+document.getElementById('stopBtn').onclick = stopMic;
+
+window.speechSynthesis.getVoices();
+window.addEventListener('beforeunload', () => {
+  try { stopMic(); if (audioCtx && audioCtx.state !== 'closed') audioCtx.close(); } catch(e){}
+}); 
+</script>
+</body>
+</html>
